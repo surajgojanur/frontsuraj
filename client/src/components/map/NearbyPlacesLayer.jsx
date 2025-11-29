@@ -75,13 +75,13 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
         'circle-color': [
           'match',
           ['get', 'category'],
-          'cafe', '#007aff',
-          'bakery', '#007aff',
-          'grocery', '#007aff',
-          /* default */ '#007aff'
+          'cafe', '#22c55e',
+          'bakery', '#22c55e',
+          'grocery', '#22c55e',
+          /* default */ '#22c55e'
         ],
         'circle-stroke-width': 1,
-        'circle-stroke-color': '#ffffff'
+        'circle-stroke-color': '#22c55e'
       }
     });
 

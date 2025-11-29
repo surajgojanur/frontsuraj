@@ -27,9 +27,9 @@ export default function TopTilesLayer({ data, idPrefix = 'main' }) {
         type: 'line',
         source: sourceId,
         paint: {
-          'line-color': '#ffffff',
+          'line-color': '#22c55e',
           'line-width': 3,
-          'line-dasharray': [1, 1], // Dotted/dashed line to make them pop
+          'line-dasharray': [1, 1],
           'line-opacity': 0.9
         },
       });

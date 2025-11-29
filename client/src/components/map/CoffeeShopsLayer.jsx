@@ -102,9 +102,9 @@ export default function CoffeeShopsLayer() {
       source: sourceId,
       paint: {
         'circle-radius': 6,
-        'circle-color': '#8B4513',
+        'circle-color': '#22c55e',
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#ffffff',
+        'circle-stroke-color': '#22c55e',
       },
     });
 

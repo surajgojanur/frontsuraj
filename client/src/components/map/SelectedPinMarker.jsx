@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMapContext } from '@/context/MapContext';
 
-export default function SelectedPinMarker({ location, color = '#3b82f6' }) {
+export default function SelectedPinMarker({ location, color = '#22c55e' }) {
   const { map, isLoaded } = useMapContext();
   const markerRef = useRef(null);
 

@@ -23,7 +23,7 @@ export default function IsochroneLayer({ data, idPrefix = 'main' }) {
         source: sourceId,
         layout: {},
         paint: {
-          'fill-color': '#3b82f6',
+          'fill-color': '#22c55e',
           'fill-opacity': 0.2,
         },
       });
@@ -34,7 +34,7 @@ export default function IsochroneLayer({ data, idPrefix = 'main' }) {
         source: sourceId,
         layout: {},
         paint: {
-          'line-color': '#2563eb',
+          'line-color': '#22c55e',
           'line-width': 2,
           'line-dasharray': [2, 1],
         },

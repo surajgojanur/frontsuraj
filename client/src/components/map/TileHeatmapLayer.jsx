@@ -26,9 +26,9 @@ export default function TileHeatmapLayer({ data, idPrefix = 'main' }) {
             'interpolate',
             ['linear'],
             ['get', 'score'],
-            0, '#ef4444',   // Red (low)
-            50, '#eab308',  // Yellow (mid)
-            100, '#22c55e'  // Green (high)
+            0, '#22c55e',
+            50, '#22c55e',
+            100, '#22c55e'
           ],
           'fill-opacity': 0.6,
         },
@@ -39,7 +39,8 @@ export default function TileHeatmapLayer({ data, idPrefix = 'main' }) {
         type: 'line',
         source: sourceId,
         paint: {
-          'line-color': 'rgba(255,255,255,0.3)',
+          'line-color': '#22c55e',
+          'line-opacity': 0.3,
           'line-width': 1,
         },
       });
