@@ -10,7 +10,7 @@ import { Clock, Footprints, Car } from 'lucide-react';
 import LocationName from "@/components/map/LocationName";
 
 export default function Sidebar() {
-  const { filters, setFilters, mode } = useAppContext();
+  const { filters, setFilters, mode, setSelectedLocation } = useAppContext();
 
   if (mode === 'compare') return null; // Sidebar hidden or different in compare mode
 
@@ -29,7 +29,10 @@ export default function Sidebar() {
            <LocationName />
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-foreground">Target Location</h2>
-            <AddressInput />
+            <AddressInput
+              locationBias="Karnataka"
+              onSelect={(location) => setSelectedLocation(location)}
+            />
             
             {/* <div className="space-y-2">
                <label className="text-sm font-medium">Transport Mode</label>
