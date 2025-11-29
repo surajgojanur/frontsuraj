@@ -10,8 +10,6 @@ import Sidebar from '@/layout/Sidebar';
 // import ComparePanel from '@/components/ui/ComparePanel';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
 import TileHeatmapLayer from '@/components/map/TileHeatmapLayer';
-import POILayer from '@/components/map/POILayer';
-import NearbyPlacesLayer from '@/components/map/NearbyPlacesLayer';
 import CoffeeShopsLayer from '@/components/map/CoffeeShopsLayer';
 import SelectedPinMarker from '@/components/map/SelectedPinMarker';
 import CompareModeLayer from '@/components/map/CompareModeLayer';
@@ -52,8 +50,6 @@ function AppContent() {
               <IsochroneLayer data={scoreData?.isochrone} />
               <TileHeatmapLayer data={scoreData?.tiles} />
               <TopTilesLayer data={scoreData?.topTiles} />
-              <POILayer data={scoreData?.pois} />
-              <NearbyPlacesLayer />
               <CoffeeShopsLayer />
               <SelectedPinMarker location={selectedLocation} />
             </>

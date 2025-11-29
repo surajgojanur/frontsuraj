@@ -5,7 +5,7 @@ import maplibregl from 'maplibre-gl';
 
 export default function CoffeeShopsLayer() {
   const { map, isLoaded } = useMapContext();
-  const { selectedLocation } = useAppContext();
+  const { selectedLocation, selectedCategories } = useAppContext();
   const [coffeeShops, setCoffeeShops] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -39,12 +39,17 @@ export default function CoffeeShopsLayer() {
 
     setLoading(true);
 
-    fetch('/api/coffee-shops', {
+    const categoriesPayload = Array.isArray(selectedCategories) && selectedCategories.length
+      ? selectedCategories
+      : ['shop=coffee'];
+
+    fetch('/api/places-nearby', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         latitude: Number(latitude),
         longitude: Number(longitude),
+        categories: categoriesPayload,
       }),
     })
       .then(async (res) => {
@@ -85,7 +90,7 @@ export default function CoffeeShopsLayer() {
         console.error('Error fetching coffee shops:', err);
         setLoading(false);
       });
-  }, [selectedLocation]);
+  }, [selectedLocation, JSON.stringify(selectedCategories || [])]);
 
   // Map Layer Logic
   useEffect(() => {
