@@ -13,6 +13,7 @@ export default function CoffeeShopsLayer() {
 
   const sourceId = 'coffee-shops-source';
   const layerId = 'coffee-shops-layer';
+  const labelLayerId = 'coffee-shops-label-layer';
 
   // Fetch coffee shops when selectedLocation changes
   useEffect(() => {
@@ -105,6 +106,9 @@ export default function CoffeeShopsLayer() {
     if (map.getLayer(layerId)) {
       map.removeLayer(layerId);
     }
+    if (map.getLayer(labelLayerId)) {
+      map.removeLayer(labelLayerId);
+    }
     if (map.getSource(sourceId)) {
       map.removeSource(sourceId);
     }
@@ -147,6 +151,24 @@ export default function CoffeeShopsLayer() {
       },
     });
 
+    map.addLayer({
+      id: labelLayerId,
+      type: 'symbol',
+      source: sourceId,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-offset': [0, 1.2],
+        'text-anchor': 'top',
+        'text-size': 12,
+        'text-allow-overlap': false,
+      },
+      paint: {
+        'text-color': '#166534',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1,
+      },
+    });
+
     // Popup Handler
     const onClick = (e) => {
       const features = map.queryRenderedFeatures(e.point, {
@@ -169,6 +191,7 @@ export default function CoffeeShopsLayer() {
     map.on('click', layerId, onClick);
 
     return () => {
+      if (map.getLayer(labelLayerId)) map.removeLayer(labelLayerId);
       if (map.getLayer(layerId)) map.removeLayer(layerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       map.off('click', layerId, onClick);
