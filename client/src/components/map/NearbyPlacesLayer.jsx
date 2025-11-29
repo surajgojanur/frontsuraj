@@ -75,10 +75,10 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
         'circle-color': [
           'match',
           ['get', 'category'],
-          'cafe', '#FF6B6B',
-          'bakery', '#FFD93D',
-          'grocery', '#6BCB77',
-          /* default */ '#4D96FF'
+          'cafe', '#007aff',
+          'bakery', '#007aff',
+          'grocery', '#007aff',
+          /* default */ '#007aff'
         ],
         'circle-stroke-width': 1,
         'circle-stroke-color': '#ffffff'
