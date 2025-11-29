@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/sonner";
 import MapContainer from '@/components/map/MapContainer';
 import Sidebar from '@/layout/Sidebar';
-import Toolbar from '@/layout/Toolbar';
+// import Toolbar from '@/layout/Toolbar';
 // import SummaryCard from '@/components/ui/SummaryCard';
 // import ComparePanel from '@/components/ui/ComparePanel';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
@@ -67,7 +67,7 @@ function AppContent() {
           )}
         </MapContainer>
 
-        <Toolbar />
+        {/* <Toolbar /> */}
 
         {/* Floating Summary Card (Scoring Mode) */}
         {mode === 'scoring' && selectedLocation && (
