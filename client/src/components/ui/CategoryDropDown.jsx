@@ -19,17 +19,13 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function CategoryDropDown({ onChange } = {}) {
-  const {
-    competitorCategories,
-    setCompetitorCategories,
-    setNearbyRefreshTick,
-  } = useAppContext();
+  const { competitorCategories, setCompetitorCategories, setNearbyRefreshTick } =
+    useAppContext();
 
   const selected = competitorCategories[0] || "";
 
   const handleSelect = (e) => {
     const newValue = e.target.value;
-
     const next = newValue ? [newValue] : [];
 
     setCompetitorCategories(next); // only ONE category

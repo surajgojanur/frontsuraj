@@ -20,8 +20,11 @@ export const AppProvider = ({ children }) => {
     category: 'coffee',
   });
 
+  // plusCategories drives our own locations (green points)
   const [plusCategories, setPlusCategories] = useState(['shop=bakery']);
+  // competitorCategories drives competitor locations (red points)
   const [competitorCategories, setCompetitorCategories] = useState([]);
+  // simple tick to request nearby refetches when categories change
   const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
 
   return (

@@ -33,12 +33,10 @@ export default function CategorySelect({ onChange } = {}) {
   const { plusCategories, setPlusCategories, setNearbyRefreshTick } =
     useAppContext();
 
-  const toggleCategory = (category) => {
-    setPlusCategories((previous) => {
-      const exists = previous.includes(category);
-      const next = exists
-        ? previous.filter((value) => value !== category)
-        : [...previous, category];
+  const toggleCategory = (cat) => {
+    setPlusCategories((prev) => {
+      const exists = prev.includes(cat);
+      const next = exists ? prev.filter((c) => c !== cat) : [...prev, cat];
 
       if (typeof onChange === "function") onChange(next);
       setNearbyRefreshTick((tick) => (tick || 0) + 1);

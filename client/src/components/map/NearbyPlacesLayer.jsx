@@ -14,8 +14,7 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
   const lat = typeof selectedLocation?.lat === 'number' ? selectedLocation.lat : (center ? center.lat : null);
   const lng = typeof selectedLocation?.lng === 'number' ? selectedLocation.lng : (center ? center.lng : null);
 
-  const categoryFilter = Array.isArray(plusCategories) ? plusCategories : [];
-  const { data, refetch } = useNearbyPlaces(lat, lng, categoryFilter, { enabled: !!lat && !!lng });
+  const { data, refetch } = useNearbyPlaces(lat, lng, plusCategories || [], { enabled: !!lat && !!lng });
 
   // update local center when map moves so we can trigger refetch when user pans
   useEffect(() => {
@@ -121,7 +120,7 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
   useEffect(() => {
     if (typeof lat !== 'number' || typeof lng !== 'number') return;
     refetch();
-  }, [JSON.stringify(categoryFilter || []), lat, lng, center?.lat, center?.lng, nearbyRefreshTick]);
+  }, [JSON.stringify(plusCategories || []), lat, lng, center?.lat, center?.lng, nearbyRefreshTick]);
 
   return null;
 }

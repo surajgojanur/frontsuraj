@@ -39,11 +39,9 @@ export default function CoffeeShopsLayer() {
       return;
     }
 
-    const categoriesPayload = Array.isArray(plusCategories) && plusCategories.length
-      ? Array.from(new Set(plusCategories)).filter(Boolean)
-      : DEFAULT_PLUS_CATEGORIES;
+    const categories = Array.from(new Set(plusCategories || DEFAULT_PLUS_CATEGORIES)).filter(Boolean);
 
-    if (!categoriesPayload.length) {
+    if (!categories.length) {
       setCoffeeShops([]);
       return;
     }
@@ -56,7 +54,7 @@ export default function CoffeeShopsLayer() {
       body: JSON.stringify({
         latitude: Number(latitude),
         longitude: Number(longitude),
-        categories: categoriesPayload,
+        categories,
       }),
     })
       .then(async (res) => {
