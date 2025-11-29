@@ -8,11 +8,45 @@ export async function fetchNearby(lat, lng, categories) {
     body: JSON.stringify({
       latitude: lat,
       longitude: lng,
-      categories: categories,
+      categories,
     }),
   });
 
-  return await res.json();
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || `Failed to load nearby places (${res.status})`);
+  }
+
+  const payload = await res.json();
+  const rawResults = Array.isArray(payload?.results) ? payload.results : [];
+
+  const sanitizedResults = rawResults
+    .map((item, index) => {
+      const latitude = Number.parseFloat(
+        item?.latitude ?? item?.lat ?? item?.location?.lat
+      );
+      const longitude = Number.parseFloat(
+        item?.longitude ?? item?.lng ?? item?.lon ?? item?.location?.lng
+      );
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return null;
+      }
+
+      return {
+        id: item?.id ?? `${latitude}-${longitude}-${index}`,
+        name: item?.name ?? "Unknown",
+        category: item?.category ?? "unknown",
+        latitude,
+        longitude,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    ...payload,
+    results: sanitizedResults,
+  };
 }
 
 export function useNearbyPlaces(lat, lng, categories, options = {}) {

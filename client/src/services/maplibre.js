@@ -7,10 +7,10 @@ export const initializeMap = (container) => {
   const map = new maplibregl.Map({
     container,
     style: STYLE_URL,
-    center: [-74.006, 40.7128], // NYC default
-    zoom: 12,
-    pitch: 0,
-    bearing: 0,
+  center: [77.5343, 12.9337],
+  zoom: 12,
+  pitch: 55,
+  bearing: -20,
     antialias: true,
   });
 

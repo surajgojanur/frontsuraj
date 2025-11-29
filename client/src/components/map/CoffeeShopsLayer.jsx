@@ -47,9 +47,38 @@ export default function CoffeeShopsLayer() {
         longitude: Number(longitude),
       }),
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const message = await res.text();
+          throw new Error(message || `Request failed (${res.status})`);
+        }
+        return res.json();
+      })
       .then((data) => {
-        setCoffeeShops(data.results || []);
+        const sanitized = (Array.isArray(data?.results) ? data.results : [])
+          .map((item, index) => {
+            const lat = Number.parseFloat(
+              item?.latitude ?? item?.lat ?? item?.location?.lat
+            );
+            const lng = Number.parseFloat(
+              item?.longitude ?? item?.lng ?? item?.lon ?? item?.location?.lng
+            );
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+              return null;
+            }
+
+            return {
+              id: item?.id ?? `${lat}-${lng}-${index}`,
+              latitude: lat,
+              longitude: lng,
+              name: item?.name ?? item?.tags?.name ?? 'Unknown',
+              category: item?.category ?? item?.tags?.shop ?? 'coffee',
+            };
+          })
+          .filter(Boolean);
+
+        setCoffeeShops(sanitized);
         setLoading(false);
       })
       .catch((err) => {
