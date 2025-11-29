@@ -5,6 +5,7 @@ import { useAppContext } from '@/context/AppContext';
 
 const SOURCE_ID = 'competitor-places-source';
 const LAYER_ID = 'competitor-places-layer';
+const LABEL_LAYER_ID = 'competitor-places-label-layer';
 const COMPETITOR_COLOR = '#ef4444';
 
 export default function CompetitorLayer() {
@@ -87,6 +88,9 @@ export default function CompetitorLayer() {
   useEffect(() => {
     if (!map || !isLoaded) return;
 
+    if (map.getLayer(LABEL_LAYER_ID)) {
+      map.removeLayer(LABEL_LAYER_ID);
+    }
     if (map.getLayer(LAYER_ID)) {
       map.removeLayer(LAYER_ID);
     }
@@ -129,6 +133,24 @@ export default function CompetitorLayer() {
       },
     });
 
+    map.addLayer({
+      id: LABEL_LAYER_ID,
+      type: 'symbol',
+      source: SOURCE_ID,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-offset': [0, 1.2],
+        'text-anchor': 'top',
+        'text-size': 12,
+        'text-allow-overlap': false,
+      },
+      paint: {
+        'text-color': '#7f1d1d',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1,
+      },
+    });
+
     const onClick = (event) => {
       const features = map.queryRenderedFeatures(event.point, {
         layers: [LAYER_ID],
@@ -149,6 +171,7 @@ export default function CompetitorLayer() {
     map.on('click', LAYER_ID, onClick);
 
     return () => {
+      if (map.getLayer(LABEL_LAYER_ID)) map.removeLayer(LABEL_LAYER_ID);
       if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
       map.off('click', LAYER_ID, onClick);
