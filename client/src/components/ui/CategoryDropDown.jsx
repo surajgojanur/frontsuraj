@@ -19,18 +19,19 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function CategoryDropDown({ onChange } = {}) {
-  const { selectedCategories, setSelectedCategories, setNearbyRefreshTick } =
+  const { competitorCategories, setCompetitorCategories, setNearbyRefreshTick } =
     useAppContext();
 
-  const selected = selectedCategories[0] || "";
+  const selected = competitorCategories[0] || "";
 
   const handleSelect = (e) => {
     const newValue = e.target.value;
+    const next = newValue ? [newValue] : [];
 
-    setSelectedCategories([newValue]); // only ONE category
+    setCompetitorCategories(next); // only ONE category
 
     if (typeof onChange === "function") {
-      onChange([newValue]); // always array for compatibility
+      onChange(next); // always array for compatibility
     }
 
     setNearbyRefreshTick((t) => (t || 0) + 1); // refresh map

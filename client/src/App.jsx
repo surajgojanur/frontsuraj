@@ -11,6 +11,7 @@ import Sidebar from '@/layout/Sidebar';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
 import TileHeatmapLayer from '@/components/map/TileHeatmapLayer';
 import CoffeeShopsLayer from '@/components/map/CoffeeShopsLayer';
+import CompetitorLayer from '@/components/map/CompetitorLayer';
 import SelectedPinMarker from '@/components/map/SelectedPinMarker';
 import CompareModeLayer from '@/components/map/CompareModeLayer';
 import TopTilesLayer from '@/components/map/TopTilesLayer';
@@ -51,6 +52,7 @@ function AppContent() {
               <TileHeatmapLayer data={scoreData?.tiles} />
               <TopTilesLayer data={scoreData?.topTiles} />
               <CoffeeShopsLayer />
+              <CompetitorLayer />
               <SelectedPinMarker location={selectedLocation} />
             </>
           ) : (

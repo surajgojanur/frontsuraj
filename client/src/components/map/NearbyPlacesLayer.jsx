@@ -5,7 +5,7 @@ import { useNearbyPlaces } from '@/lib/nearby';
 
 export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
   const { map, isLoaded } = useMapContext();
-  const { selectedLocation, selectedCategories, nearbyRefreshTick } = useAppContext();
+  const { selectedLocation, plusCategories, nearbyRefreshTick } = useAppContext();
   const [center, setCenter] = useState(null);
   const sourceId = `${idPrefix}-pois`;
   const layerId = `${idPrefix}-pois-layer`;
@@ -14,7 +14,7 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
   const lat = typeof selectedLocation?.lat === 'number' ? selectedLocation.lat : (center ? center.lat : null);
   const lng = typeof selectedLocation?.lng === 'number' ? selectedLocation.lng : (center ? center.lng : null);
 
-  const { data, refetch } = useNearbyPlaces(lat, lng, selectedCategories || [], { enabled: !!lat && !!lng });
+  const { data, refetch } = useNearbyPlaces(lat, lng, plusCategories || [], { enabled: !!lat && !!lng });
 
   // update local center when map moves so we can trigger refetch when user pans
   useEffect(() => {
@@ -116,11 +116,11 @@ export default function NearbyPlacesLayer({ idPrefix = 'nearby' }) {
     };
   }, [data, map, isLoaded, layerId, sourceId]);
 
-  // refetch when selectedCategories, selectedLocation, center (map move) or nearbyRefreshTick changes
+  // refetch when plusCategories, selectedLocation, center (map move) or nearbyRefreshTick changes
   useEffect(() => {
     if (typeof lat !== 'number' || typeof lng !== 'number') return;
     refetch();
-  }, [JSON.stringify(selectedCategories || []), lat, lng, center?.lat, center?.lng, nearbyRefreshTick]);
+  }, [JSON.stringify(plusCategories || []), lat, lng, center?.lat, center?.lng, nearbyRefreshTick]);
 
   return null;
 }
