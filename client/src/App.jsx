@@ -15,6 +15,7 @@ import CompetitorLayer from '@/components/map/CompetitorLayer';
 import SelectedPinMarker from '@/components/map/SelectedPinMarker';
 import CompareModeLayer from '@/components/map/CompareModeLayer';
 import TopTilesLayer from '@/components/map/TopTilesLayer';
+import RadiusCircleLayer from '@/components/map/RadiusCircleLayer';
 import LocationScoreCard from '@/components/ui/LocationScoreCard';
 import { useScoreLocation } from '@/hooks/useScoreLocation';
 import { useCompareLocations } from '@/hooks/useCompareLocations';
@@ -60,6 +61,7 @@ function AppContent() {
         <MapContainer>
           {mode === 'scoring' ? (
             <>
+              <RadiusCircleLayer radiusKm={2} />
               <IsochroneLayer data={scoreData?.isochrone} />
               <TileHeatmapLayer data={scoreData?.tiles} />
               <TopTilesLayer data={scoreData?.topTiles} />
