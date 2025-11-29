@@ -21,16 +21,9 @@ export default function POILayer({ data, idPrefix = 'main' }) {
         type: 'circle',
         source: sourceId,
         paint: {
-          'circle-radius': 6,
-          'circle-color': [
-            'match',
-            ['get', 'type'],
-            'competitor', '#ef4444',
-            'amenity', '#3b82f6',
-            'transit', '#eab308',
-            '#888888'
-          ],
-          'circle-stroke-width': 2,
+          'circle-radius': 5,
+          'circle-color': '#007aff',
+          'circle-stroke-width': 1,
           'circle-stroke-color': '#ffffff',
         },
       });

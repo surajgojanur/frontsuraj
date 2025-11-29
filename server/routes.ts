@@ -1,3 +1,4 @@
+import { posts } from './../node_modules/@reduxjs/toolkit/src/query/tests/mocks/handlers';
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { type Request, type Response } from "express";
@@ -91,75 +92,76 @@ export async function registerRoutes(
   //   }
   // });
 
-  app.post("/api/coffee-shops", async (req: Request, res: Response) => {
-    try {
-      console.log("BODY RECEIVED:", req.body);
+  // app.post("/api/coffee-shops", async (req: Request, res: Response) => {
+  //   try {
+  //     console.log("BODY RECEIVED:", req.body);
 
-      // Accept both {latitude, longitude} AND {lat, lng}
-      let { latitude, longitude, lat, lng } = req.body;
+  //     // Accept both {latitude, longitude} AND {lat, lng}
+  //     let { latitude, longitude, lat, lng } = req.body;
 
-      // Auto-map fallback values
-      latitude = latitude ?? lat;
-      longitude = longitude ?? lng;
+  //     // Auto-map fallback values
+  //     latitude = latitude ?? lat;
+  //     longitude = longitude ?? lng;
 
-      if (!latitude || !longitude) {
-        return res
-          .status(400)
-          .json({ error: "latitude and longitude are required" });
-      }
+  //     if (!latitude || !longitude) {
+  //       return res
+  //         .status(400)
+  //         .json({ error: "latitude and longitude are required" });
+  //     }
 
-      const radius = 2000; // 2 km
+  //     const radius = 2000; // 2 km
 
-      const query = `
-      [out:json][timeout:25];
-      (
-        node["amenity"="cafe"](around:${radius},${latitude},${longitude});
-        node["shop"="coffee"](around:${radius},${latitude},${longitude});
-        way["amenity"="cafe"](around:${radius},${latitude},${longitude});
-        way["shop"="coffee"](around:${radius},${latitude},${longitude});
-        relation["amenity"="cafe"](around:${radius},${latitude},${longitude});
-        relation["shop"="coffee"](around:${radius},${latitude},${longitude});
-      );
-      out center meta;
-    `;
+  //     const query = `
+  //     [out:json][timeout:25];
+  //     (
+  //       node["amenity"="cafe"](around:${radius},${latitude},${longitude});
+  //       node["shop"="coffee"](around:${radius},${latitude},${longitude});
+  //       way["amenity"="cafe"](around:${radius},${latitude},${longitude});
+  //       way["shop"="coffee"](around:${radius},${latitude},${longitude});
+  //       relation["amenity"="cafe"](around:${radius},${latitude},${longitude});
+  //       relation["shop"="coffee"](around:${radius},${latitude},${longitude});
+  //     );
+  //     out center meta;
+  //   `;
 
-      const url = "https://overpass-api.de/api/interpreter";
+  //     // const url = "https://overpass-api.de/api/interpreter";
+  //     const url = "https://overpass.kumi.systems/api/interpreter";
 
-      const response = await axios.post(url, query, {
-        headers: { "Content-Type": "text/plain" },
-      });
+  //     const response = await axios.post(url, query, {
+  //       headers: { "Content-Type": "text/plain" },
+  //     });
 
-      const results = [];
-      const seen = new Set();
+  //     const results = [];
+  //     const seen = new Set();
 
-      for (const el of response.data.elements) {
-        const lat = el.lat || el.center?.lat;
-        const lon = el.lon || el.center?.lon;
-        if (!lat || !lon) continue;
+  //     for (const el of response.data.elements) {
+  //       const lat = el.lat || el.center?.lat;
+  //       const lon = el.lon || el.center?.lon;
+  //       if (!lat || !lon) continue;
 
-        const idKey = `${el.type}-${el.id}`;
-        if (seen.has(idKey)) continue;
-        seen.add(idKey);
+  //       const idKey = `${el.type}-${el.id}`;
+  //       if (seen.has(idKey)) continue;
+  //       seen.add(idKey);
 
-        results.push({
-          id: el.id,
-          name: el.tags?.name || "Unknown",
-          category: el.tags?.amenity || el.tags?.shop || "coffee",
-          latitude: lat,
-          longitude: lon,
-          tags: el.tags || {},
-        });
-      }
+  //       results.push({
+  //         id: el.id,
+  //         name: el.tags?.name || "Unknown",
+  //         category: el.tags?.amenity || el.tags?.shop || "coffee",
+  //         latitude: lat,
+  //         longitude: lon,
+  //         tags: el.tags || {},
+  //       });
+  //     }
 
-      res.json({
-        count: results.length,
-        results,
-      });
-    } catch (err: any) {
-      console.error(err);
-      res.status(500).json({ error: "Server error", details: err.message });
-    }
-  });
+  //     res.json({
+  //       count: results.length,
+  //       results,
+  //     });
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     res.status(500).json({ error: "Server error", details: err.message });
+  //   }
+  // });
 
   // Dynamic query API
   // POST /api/places-nearby
@@ -243,8 +245,34 @@ export async function registerRoutes(
     }
   });
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+
+  app.post('/api/address', async (req:Request, res:Response) => {
+    console.log("API",process.env.LATLONG_API_KEY);
+    const { lat ,lon} = req.query;
+
+    if (!lat && !lon) {
+        return res.status(400).json({ error: "Query 'address' is required" });
+    }
+
+    try {
+        const response = await axios.get("https://apihub.latlong.ai/v4/reverse_geocode", {
+            params: {
+                lat: lat,
+                lon: lon
+            },
+            headers: {
+                 'X-Authorization-Token': process.env.LATLONG_API_KEY
+            }
+        });
+        console.log("API :",process.env.LATLONG_API_KEY);
+        console.log(response.data);
+        res.json(response.data);
+
+    } catch (error: any) {
+        console.error("API Error:", error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to fetch geocode data" });
+    }
+});
 
   // Autocomplete proxy endpoint
   app.get("/api/autocomplete", async (req: Request, res: Response) => {

@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import MapContainer from '@/components/map/MapContainer';
 import Sidebar from '@/layout/Sidebar';
 import Toolbar from '@/layout/Toolbar';
-import SummaryCard from '@/components/ui/SummaryCard';
-import ComparePanel from '@/components/ui/ComparePanel';
+// import SummaryCard from '@/components/ui/SummaryCard';
+// import ComparePanel from '@/components/ui/ComparePanel';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
 import TileHeatmapLayer from '@/components/map/TileHeatmapLayer';
 import POILayer from '@/components/map/POILayer';
@@ -18,6 +18,8 @@ import CompareModeLayer from '@/components/map/CompareModeLayer';
 import TopTilesLayer from '@/components/map/TopTilesLayer';
 import { useScoreLocation } from '@/hooks/useScoreLocation';
 import { useCompareLocations } from '@/hooks/useCompareLocations';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import HeatmapDashboardSplit from "@/pages/HeatmapDashboardSplit";
 
 const queryClient = new QueryClient();
 
@@ -78,7 +80,7 @@ function AppContent() {
         )}
         
         {/* Right Panel */}
-        <div className="absolute top-0 right-0 h-full w-80 pointer-events-none flex flex-col justify-end p-4 z-10">
+        {/* <div className="absolute top-0 right-0 h-full w-80 pointer-events-none flex flex-col justify-end p-4 z-10">
            {mode === 'scoring' ? (
              <div className="pointer-events-auto">
                <SummaryCard data={scoreData} loading={scoreLoading} />
@@ -88,11 +90,15 @@ function AppContent() {
                <ComparePanel data={compareData} loading={compareData.isLoading} />
              </div>
            )}
-        </div>
+        </div> */}
       </div>
     </div>
   );
 }
+
+
+
+
 
 export default function App() {
   return (
@@ -100,7 +106,17 @@ export default function App() {
       <AppProvider>
         <MapProvider>
           <Toaster />
-          <AppContent />
+          <BrowserRouter>
+            <Routes>
+
+              {/* Existing Root */}
+              <Route path="/" element={<AppContent />} />
+
+              {/* ➕ Add Heatmap Dashboard Page */}
+              <Route path="/heatmap-dashboard" element={<HeatmapDashboardSplit />} />
+
+            </Routes>
+          </BrowserRouter>
         </MapProvider>
       </AppProvider>
     </QueryClientProvider>
