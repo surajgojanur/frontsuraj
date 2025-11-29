@@ -20,10 +20,8 @@ export const AppProvider = ({ children }) => {
     category: 'coffee',
   });
 
-  // selectedCategories is an array of strings like ['amenity=cafe','shop=bakery']
-  // default to bakery selected per request
-  const [selectedCategories, setSelectedCategories] = useState(['shop=bakery']);
-  // simple tick to request nearby refetches when categories change
+  const [plusCategories, setPlusCategories] = useState(['shop=bakery']);
+  const [competitorCategories, setCompetitorCategories] = useState([]);
   const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
 
   return (
@@ -34,7 +32,8 @@ export const AppProvider = ({ children }) => {
       compareLocationB, setCompareLocationB,
       priorities, setPriorities,
       filters, setFilters,
-      selectedCategories, setSelectedCategories,
+      plusCategories, setPlusCategories,
+      competitorCategories, setCompetitorCategories,
       nearbyRefreshTick, setNearbyRefreshTick
     }}>
       {children}

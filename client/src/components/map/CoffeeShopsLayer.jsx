@@ -3,9 +3,11 @@ import { useMapContext } from '@/context/MapContext';
 import { useAppContext } from '@/context/AppContext';
 import maplibregl from 'maplibre-gl';
 
+const DEFAULT_PLUS_CATEGORIES = ['shop=bakery'];
+
 export default function CoffeeShopsLayer() {
   const { map, isLoaded } = useMapContext();
-  const { selectedLocation, selectedCategories } = useAppContext();
+  const { selectedLocation, plusCategories } = useAppContext();
   const [coffeeShops, setCoffeeShops] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,11 +39,16 @@ export default function CoffeeShopsLayer() {
       return;
     }
 
-    setLoading(true);
+    const categoriesPayload = Array.isArray(plusCategories) && plusCategories.length
+      ? Array.from(new Set(plusCategories)).filter(Boolean)
+      : DEFAULT_PLUS_CATEGORIES;
 
-    const categoriesPayload = Array.isArray(selectedCategories) && selectedCategories.length
-      ? selectedCategories
-      : ['shop=coffee'];
+    if (!categoriesPayload.length) {
+      setCoffeeShops([]);
+      return;
+    }
+
+    setLoading(true);
 
     fetch('/api/places-nearby', {
       method: 'POST',
@@ -90,7 +97,7 @@ export default function CoffeeShopsLayer() {
         console.error('Error fetching coffee shops:', err);
         setLoading(false);
       });
-  }, [selectedLocation, JSON.stringify(selectedCategories || [])]);
+  }, [selectedLocation, JSON.stringify(plusCategories || DEFAULT_PLUS_CATEGORIES)]);
 
   // Map Layer Logic
   useEffect(() => {

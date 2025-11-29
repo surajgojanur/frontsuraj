@@ -4,6 +4,7 @@ import { createServer, type Server } from "http";
 import { type Request, type Response } from "express";
 import { storage } from "./storage";
 import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -475,56 +476,67 @@ export async function registerRoutes(
   });
 
   app.post("/api/gemini", async (req: Request, res: Response) => {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.Gemini_Key ?? process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("GEMINI_API_KEY is not set");
+      console.error("Gemini API key is not set");
       return res.status(500).json({ error: "Server configuration error" });
     }
 
     const schema = z.object({
-      text: z.string().min(1, "text is required"),
+      prompt: z.string().trim().min(1, "prompt is required").optional(),
     });
 
-    const parseResult = schema.safeParse(req.body);
+    const parseResult = schema.safeParse(req.body ?? {});
     if (!parseResult.success) {
       const [{ message }] = parseResult.error.errors;
       return res.status(400).json({ error: message });
     }
 
-    const { text } = parseResult.data;
+    const prompt =
+      parseResult.data.prompt ?? "Explain how AI works in a few words";
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const response = await axios.post(url, {
-        contents: [
-          {
-            role: "user",
-            parts: [{ text }],
-          },
-        ],
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
       });
 
-      const reply =
-        response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+      let output: unknown = (response as any)?.text;
 
-      if (!reply) {
-        console.error("Gemini response missing text", response.data);
+      if (typeof output === "function") {
+        output = await output.call(response);
+      }
+
+      if (typeof output !== "string" || output.trim().length === 0) {
+        const candidates = Array.isArray((response as any)?.candidates)
+          ? (response as any).candidates
+          : [];
+
+        output = candidates
+          .flatMap((candidate: any) => candidate?.content?.parts ?? [])
+          .map((part: any) => part?.text)
+          .filter((value: any): value is string => Boolean(value))
+          .join("\n");
+      }
+
+      if (typeof output !== "string" || output.trim().length === 0) {
         return res
           .status(502)
           .json({ error: "Gemini API did not return any content" });
       }
 
-      res.json({ text: reply });
+      res.json({ text: output });
     } catch (error: any) {
       console.error(
         "Gemini API Error:",
-        error.response?.data || error.message || error
+        error?.response?.data || error?.message || error
       );
 
-      const status = error.response?.status || 500;
+      const status = error?.response?.status || 500;
       const message =
-        error.response?.data?.error?.message ||
-        error.response?.data?.message ||
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
         "Failed to fetch response from Gemini";
 
       res.status(status).json({ error: message });

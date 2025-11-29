@@ -11,9 +11,11 @@ import Sidebar from '@/layout/Sidebar';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
 import TileHeatmapLayer from '@/components/map/TileHeatmapLayer';
 import CoffeeShopsLayer from '@/components/map/CoffeeShopsLayer';
+import CompetitorLayer from '@/components/map/CompetitorLayer';
 import SelectedPinMarker from '@/components/map/SelectedPinMarker';
 import CompareModeLayer from '@/components/map/CompareModeLayer';
 import TopTilesLayer from '@/components/map/TopTilesLayer';
+import LocationScoreCard from '@/components/ui/LocationScoreCard';
 import { useScoreLocation } from '@/hooks/useScoreLocation';
 import { useCompareLocations } from '@/hooks/useCompareLocations';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -22,12 +24,23 @@ import HeatmapDashboardSplit from "@/pages/HeatmapDashboardSplit";
 const queryClient = new QueryClient();
 
 function AppContent() {
-  const { mode, selectedLocation, compareLocationA, compareLocationB, filters, priorities } = useAppContext();
+  const {
+    mode,
+    selectedLocation,
+    compareLocationA,
+    compareLocationB,
+    filters,
+    priorities,
+    plusCategories,
+    competitorCategories,
+  } = useAppContext();
   
   const { data: scoreData, isLoading: scoreLoading } = useScoreLocation(
     selectedLocation, 
     filters, 
-    priorities
+    priorities,
+    plusCategories,
+    competitorCategories
   );
 
   const compareData = useCompareLocations(
@@ -51,6 +64,7 @@ function AppContent() {
               <TileHeatmapLayer data={scoreData?.tiles} />
               <TopTilesLayer data={scoreData?.topTiles} />
               <CoffeeShopsLayer />
+              <CompetitorLayer />
               <SelectedPinMarker location={selectedLocation} />
             </>
           ) : (
@@ -65,28 +79,11 @@ function AppContent() {
 
         {/* <Toolbar /> */}
 
-        {/* Floating Summary Card (Scoring Mode) */}
-        {mode === 'scoring' && selectedLocation && (
-          <div className="absolute top-4 left-4 w-80 z-20">
-             {/* Sidebar is on the left, so let's put this on the right or floating if sidebar is closed? 
-                 Actually prompt says: "C. Right Summary Panel". 
-                 Sidebar is Left. Main Map Area. Right Summary Panel.
-             */}
+        {mode === 'scoring' && (
+          <div className="absolute top-4 right-4 z-30">
+            <LocationScoreCard data={scoreData} loading={scoreLoading} />
           </div>
         )}
-        
-        {/* Right Panel */}
-        {/* <div className="absolute top-0 right-0 h-full w-80 pointer-events-none flex flex-col justify-end p-4 z-10">
-           {mode === 'scoring' ? (
-             <div className="pointer-events-auto">
-               <SummaryCard data={scoreData} loading={scoreLoading} />
-             </div>
-           ) : (
-             <div className="pointer-events-auto h-full">
-               <ComparePanel data={compareData} loading={compareData.isLoading} />
-             </div>
-           )}
-        </div> */}
       </div>
     </div>
   );
