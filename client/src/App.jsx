@@ -5,9 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/sonner";
 import MapContainer from '@/components/map/MapContainer';
 import Sidebar from '@/layout/Sidebar';
-// import Toolbar from '@/layout/Toolbar';
-// import SummaryCard from '@/components/ui/SummaryCard';
-// import ComparePanel from '@/components/ui/ComparePanel';
 import IsochroneLayer from '@/components/map/IsochroneLayer';
 import TileHeatmapLayer from '@/components/map/TileHeatmapLayer';
 import CoffeeShopsLayer from '@/components/map/CoffeeShopsLayer';
@@ -58,10 +55,8 @@ function AppContent() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      {/* Sidebar - Left */}
       <Sidebar />
 
-      {/* Main Content - Map */}
       <div className="flex-1 relative">
         <MapContainer>
           {mode === 'scoring' ? (
@@ -89,9 +84,6 @@ function AppContent() {
           <ScorecardToggleControl className="absolute right-16 bottom-32 z-30" />
           <LegendControl className="absolute left-4 bottom-4 z-30" />
         </MapContainer>
-
-        {/* <Toolbar /> */}
-
         {mode === 'scoring' && scorecardVisible && (
           <div className="absolute top-4 right-4 z-30">
             <LocationScoreCard data={scoreData} loading={scoreLoading} />
@@ -114,13 +106,8 @@ export default function App() {
           <Toaster />
           <BrowserRouter>
             <Routes>
-
-              {/* Existing Root */}
               <Route path="/" element={<AppContent />} />
-
-              {/* ➕ Add Heatmap Dashboard Page */}
               <Route path="/heatmap-dashboard" element={<HeatmapDashboardSplit />} />
-
             </Routes>
           </BrowserRouter>
         </MapProvider>
