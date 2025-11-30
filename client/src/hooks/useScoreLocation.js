@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchNearby } from '@/lib/nearby';
 import { fetchCompetitorDensity } from '@/lib/density';
+import { fetchLocationContext } from '@/lib/context';
 
 const SCORE_MAX = 100;
 const BASE_SCORE = 50;
@@ -59,13 +60,17 @@ const fetchScore = async (location, plusCategories, competitorCategories) => {
     return null;
   }
 
-  const [targetData, competitorDensity] = await Promise.all([
+  const [targetData, competitorDensity, locationContext] = await Promise.all([
     Array.isArray(plusCategories) && plusCategories.length
       ? fetchNearby(latitude, longitude, plusCategories)
       : Promise.resolve({ results: [] }),
     Array.isArray(competitorCategories) && competitorCategories.length
       ? fetchCompetitorDensity(latitude, longitude, competitorCategories)
       : Promise.resolve({ tiles: null, points: [], topTiles: [], metadata: null, heatmap: null }),
+    fetchLocationContext(latitude, longitude).catch((err) => {
+      console.error('Location context fetch failed:', err);
+      return null;
+    }),
   ]);
 
   const targetNearest = findNearest(targetData.results, latitude, longitude);
@@ -130,6 +135,7 @@ const fetchScore = async (location, plusCategories, competitorCategories) => {
     pois: null,
     topTiles: competitorDensity.topTiles,
     densityMetadata: competitorDensity.metadata,
+    context: locationContext,
   };
 };
 

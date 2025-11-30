@@ -6,6 +6,23 @@ const formatDistance = (meters) => {
   return `${(meters / 1000).toFixed(2)} km`;
 };
 
+const formatKilometers = (km) => {
+  if (!Number.isFinite(km)) return "—";
+  if (km < 1) return `${(km * 1000).toFixed(0)} m`;
+  return `${km.toFixed(km < 10 ? 2 : 1)} km`;
+};
+
+const formatArea = (sqKm) => {
+  if (!Number.isFinite(sqKm)) return "—";
+  if (sqKm < 1) return `${(sqKm * 1_000_000).toLocaleString()} m²`;
+  return `${sqKm.toFixed(2)} km²`;
+};
+
+const formatPercent = (value) => {
+  if (!Number.isFinite(value)) return "—";
+  return `${value}%`;
+};
+
 const deltaBadgeClass = (delta) => {
   if (delta > 0) return "bg-emerald-100 text-emerald-700";
   if (delta < 0) return "bg-rose-100 text-rose-700";
@@ -35,6 +52,15 @@ export default function LocationScoreCard({ data, loading }) {
     100,
     Math.max(0, (data.score / (data.scoreMax || 100)) * 100)
   );
+
+  const context = data.context || null;
+  const areaInfo = context?.area || null;
+  const roadsInfo = context?.roads || null;
+  const contextScores = context?.scores || null;
+  const areaLabel = areaInfo?.name || areaInfo?.place || null;
+  const transitInfo = context?.transit || null;
+  const transitCounts = transitInfo?.counts || null;
+  const nearestTransit = transitInfo?.nearest || null;
 
   return (
     <div className="w-80 bg-white/95 backdrop-blur-sm border border-border rounded-2xl shadow-lg p-5 space-y-4">
@@ -102,6 +128,90 @@ export default function LocationScoreCard({ data, loading }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {context && (
+        <div className="space-y-2 border-t border-muted pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Access &amp; Context
+          </p>
+          <div className="space-y-1.5 text-sm text-foreground/80">
+            <div className="flex items-center justify-between">
+              <span>Catchment Area</span>
+              <span className="font-medium text-foreground">
+                {areaLabel ?? "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Approx. Size</span>
+              <span>{formatArea(areaInfo?.approximateAreaSqKm)}</span>
+            </div>
+            {areaInfo?.adminLevel && (
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Admin Level</span>
+                <span>{areaInfo.adminLevel}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Walkability Score</span>
+              <span className="font-medium text-foreground">
+                {formatPercent(contextScores?.walkability)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Cycle Support</span>
+              <span>{formatPercent(contextScores?.cycleFriendliness)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Vehicle Dominance</span>
+              <span>{formatPercent(contextScores?.vehicleDominance)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Walkable Network</span>
+              <span>{formatKilometers(roadsInfo?.walkableKm)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Road Density</span>
+              <span>
+                {Number.isFinite(roadsInfo?.densityPerSqKm)
+                  ? `${roadsInfo.densityPerSqKm.toFixed(2)} km / km²`
+                  : "—"}
+              </span>
+            </div>
+            {transitInfo && (
+              <div className="pt-2 mt-2 border-t border-dashed border-muted/60 space-y-1.5">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Total Transit Nodes</span>
+                  <span>{transitCounts?.total ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Stations</span>
+                  <span>{transitCounts?.station ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Bus Stops</span>
+                  <span>{transitCounts?.busStop ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Rail Stations</span>
+                  <span>{transitCounts?.railStation ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Nearest Station</span>
+                  <span>{formatDistance(nearestTransit?.station?.distanceMeters)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Nearest Bus Stop</span>
+                  <span>{formatDistance(nearestTransit?.busStop?.distanceMeters)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Nearest Rail Station</span>
+                  <span>{formatDistance(nearestTransit?.railStation?.distanceMeters)}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
