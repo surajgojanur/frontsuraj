@@ -7,12 +7,17 @@ import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import {
   bbox as turfBbox,
+  bboxPolygon as turfBboxPolygon,
   circle as turfCircle,
   featureCollection,
   hexGrid as turfHexGrid,
+  area as turfArea,
+  length as turfLength,
+  lineString as turfLineString,
   point as turfPoint,
   pointsWithinPolygon,
   centroid as turfCentroid,
+  distance as turfDistance,
 } from "@turf/turf";
 import type {
   Feature,
@@ -474,6 +479,398 @@ export async function registerRoutes(
           maxCount,
           radiusKm,
           cellKm,
+        },
+      });
+    } catch (error: any) {
+      console.error(error);
+      return res.status(500).json({
+        error: "Server error",
+        details: error.message,
+      });
+    }
+  });
+
+  app.post("/api/location-context", async (req: Request, res: Response) => {
+    const schema = z.object({
+      latitude: z.coerce
+        .number({ invalid_type_error: "latitude must be a number" })
+        .min(-90, "latitude must be >= -90")
+        .max(90, "latitude must be <= 90"),
+      longitude: z.coerce
+        .number({ invalid_type_error: "longitude must be a number" })
+        .min(-180, "longitude must be >= -180")
+        .max(180, "longitude must be <= 180"),
+      radiusMeters: z.coerce
+        .number({ invalid_type_error: "radiusMeters must be a number" })
+        .min(250, "radiusMeters must be >= 250")
+        .max(5000, "radiusMeters must be <= 5000")
+        .default(1500),
+    });
+
+    const parseResult = schema.safeParse(req.body ?? {});
+    if (!parseResult.success) {
+      const [{ message }] = parseResult.error.errors;
+      return res.status(400).json({ error: message });
+    }
+
+  const { latitude, longitude, radiusMeters } = parseResult.data;
+  const originPoint = turfPoint([longitude, latitude]);
+
+    try {
+      const adminQuery = `
+        [out:json][timeout:30];
+        is_in(${latitude},${longitude})->.a;
+        (
+          rel.a["boundary"="administrative"]["admin_level"~"^(8|9|10)$"];
+          way.a["boundary"="administrative"]["admin_level"~"^(8|9|10)$"];
+        );
+        out tags center bb;
+      `;
+
+      const adminResponse = await axios.post(
+        "https://overpass-api.de/api/interpreter",
+        adminQuery,
+        { headers: { "Content-Type": "text/plain" } }
+      );
+
+      const adminElements = Array.isArray(adminResponse?.data?.elements)
+        ? (adminResponse.data.elements as Record<string, any>[])
+        : [];
+
+      const scoredCandidates = adminElements
+        .filter((item) => Boolean(item?.tags))
+        .map((item) => {
+          const adminLevel = Number.parseInt(item?.tags?.admin_level ?? "99", 10);
+          const bounds = item?.bounds;
+          let boundingAreaSqKm: number | null = null;
+
+          if (
+            bounds &&
+            Number.isFinite(bounds.minlat) &&
+            Number.isFinite(bounds.minlon) &&
+            Number.isFinite(bounds.maxlat) &&
+            Number.isFinite(bounds.maxlon)
+          ) {
+            try {
+              const bboxPoly = turfBboxPolygon([
+                bounds.minlon,
+                bounds.minlat,
+                bounds.maxlon,
+                bounds.maxlat,
+              ]);
+              boundingAreaSqKm = Number((turfArea(bboxPoly) / 1_000_000).toFixed(3));
+            } catch (err) {
+              boundingAreaSqKm = null;
+            }
+          }
+
+          return {
+            element: item,
+            adminLevel,
+            boundingAreaSqKm,
+          };
+        })
+        .sort((a, b) => {
+          if (a.adminLevel === b.adminLevel) {
+            const areaA = a.boundingAreaSqKm ?? Number.POSITIVE_INFINITY;
+            const areaB = b.boundingAreaSqKm ?? Number.POSITIVE_INFINITY;
+            return areaA - areaB;
+          }
+          return b.adminLevel - a.adminLevel;
+        });
+
+      const bestAdmin = scoredCandidates.length ? scoredCandidates[0] : null;
+
+      const areaSummary = bestAdmin
+        ? {
+            name: bestAdmin.element.tags?.name ?? null,
+            adminLevel: bestAdmin.element.tags?.admin_level ?? null,
+            place: bestAdmin.element.tags?.place ?? null,
+            population: bestAdmin.element.tags?.population ?? null,
+            bounds: bestAdmin.element.bounds ?? null,
+            approximateAreaSqKm: bestAdmin.boundingAreaSqKm,
+          }
+        : null;
+
+      const roadsQuery = `
+        [out:json][timeout:40];
+        (
+          way["highway"](around:${radiusMeters},${latitude},${longitude});
+        );
+        out geom tags;
+      `;
+
+      const roadsResponse = await axios.post(
+        "https://overpass-api.de/api/interpreter",
+        roadsQuery,
+        { headers: { "Content-Type": "text/plain" } }
+      );
+
+      const roadElements = Array.isArray(roadsResponse?.data?.elements)
+        ? (roadsResponse.data.elements as Record<string, any>[])
+        : [];
+
+      const WALKABLE_TYPES = new Set([
+        "footway",
+        "pedestrian",
+        "living_street",
+        "path",
+        "track",
+        "steps",
+        "residential",
+        "service",
+        "cycleway",
+      ]);
+
+      const CYCLE_TYPES = new Set(["cycleway", "path", "track"]);
+
+      const VEHICLE_FOCUS_TYPES = new Set([
+        "motorway",
+        "motorway_link",
+        "trunk",
+        "trunk_link",
+        "primary",
+        "primary_link",
+        "secondary",
+        "secondary_link",
+        "tertiary",
+        "tertiary_link",
+      ]);
+
+      let totalKm = 0;
+      let walkableKm = 0;
+      let cycleKm = 0;
+      let vehicleKm = 0;
+      const lengthByType = new Map<string, number>();
+
+      for (const element of roadElements) {
+        const points = Array.isArray(element?.geometry)
+          ? (element.geometry as Array<{ lat: number; lon: number }>)
+          : [];
+
+        if (points.length < 2) continue;
+
+        const coordinates = points.map((p) => [p.lon, p.lat]);
+        const line = turfLineString(coordinates);
+        const km = turfLength(line, { units: "kilometers" });
+
+        if (!Number.isFinite(km) || km <= 0) continue;
+
+        const highwayType = element?.tags?.highway ?? "unknown";
+
+        totalKm += km;
+        lengthByType.set(highwayType, (lengthByType.get(highwayType) ?? 0) + km);
+
+        if (WALKABLE_TYPES.has(highwayType) || element?.tags?.foot === "yes") {
+          walkableKm += km;
+        }
+
+        if (CYCLE_TYPES.has(highwayType) || element?.tags?.cycleway) {
+          cycleKm += km;
+        }
+
+        if (VEHICLE_FOCUS_TYPES.has(highwayType)) {
+          vehicleKm += km;
+        }
+      }
+
+      const transitQuery = `
+        [out:json][timeout:35];
+        (
+          node["public_transport"="station"](around:${radiusMeters},${latitude},${longitude});
+          node["highway"="bus_stop"](around:${radiusMeters},${latitude},${longitude});
+          node["railway"="station"](around:${radiusMeters},${latitude},${longitude});
+        );
+        out body;
+      `;
+
+      const transitResponse = await axios.post(
+        "https://overpass-api.de/api/interpreter",
+        transitQuery,
+        { headers: { "Content-Type": "text/plain" } }
+      );
+
+      const transitElements = Array.isArray(transitResponse?.data?.elements)
+        ? (transitResponse.data.elements as Record<string, any>[])
+        : [];
+
+      const transitCounts = {
+        station: 0,
+        busStop: 0,
+        railStation: 0,
+        total: 0,
+      };
+
+      const nearestTransit: Record<
+        "station" | "busStop" | "railStation",
+        | {
+            name: string;
+            distanceMeters: number;
+            latitude: number;
+            longitude: number;
+          }
+        | null
+      > = {
+        station: null,
+        busStop: null,
+        railStation: null,
+      };
+
+      for (const element of transitElements) {
+        const lat = Number.parseFloat(
+          element?.lat ?? element?.center?.lat
+        );
+        const lon = Number.parseFloat(
+          element?.lon ?? element?.center?.lon
+        );
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          continue;
+        }
+
+        const tags = (element?.tags ?? {}) as Record<string, any>;
+        const point = turfPoint([lon, lat]);
+        const distanceKm = turfDistance(originPoint, point, {
+          units: "kilometers",
+        });
+
+        if (!Number.isFinite(distanceKm)) {
+          continue;
+        }
+
+        const distanceMeters = Math.round(distanceKm * 1000);
+        const primaryName =
+          typeof tags?.name === "string" && tags.name.trim().length > 0
+            ? tags.name.trim()
+            : null;
+        const englishName =
+          typeof tags?.["name:en"] === "string" && tags["name:en"].trim().length > 0
+            ? tags["name:en"].trim()
+            : null;
+        const refName =
+          tags?.ref != null && String(tags.ref).trim().length > 0
+            ? String(tags.ref).trim()
+            : null;
+        const name = primaryName ?? englishName ?? refName ?? "Unnamed stop";
+        const publicTransportType = tags["public_transport"];
+        const highwayTypeTag = tags["highway"];
+        const railwayTypeTag = tags["railway"];
+
+        let matched = false;
+
+        if (publicTransportType === "station") {
+          matched = true;
+          transitCounts.station += 1;
+          const existing = nearestTransit.station;
+          if (!existing || distanceMeters < existing.distanceMeters) {
+            nearestTransit.station = {
+              name,
+              distanceMeters,
+              latitude: lat,
+              longitude: lon,
+            };
+          }
+        }
+
+        if (highwayTypeTag === "bus_stop") {
+          matched = true;
+          transitCounts.busStop += 1;
+          const existing = nearestTransit.busStop;
+          if (!existing || distanceMeters < existing.distanceMeters) {
+            nearestTransit.busStop = {
+              name,
+              distanceMeters,
+              latitude: lat,
+              longitude: lon,
+            };
+          }
+        }
+
+        if (railwayTypeTag === "station") {
+          matched = true;
+          transitCounts.railStation += 1;
+          const existing = nearestTransit.railStation;
+          if (!existing || distanceMeters < existing.distanceMeters) {
+            nearestTransit.railStation = {
+              name,
+              distanceMeters,
+              latitude: lat,
+              longitude: lon,
+            };
+          }
+        }
+
+        if (matched) {
+          transitCounts.total += 1;
+        }
+      }
+
+      const walkabilityScore = totalKm > 0 ? Math.round((walkableKm / totalKm) * 100) : null;
+      const cycleScore = totalKm > 0 ? Math.round((cycleKm / totalKm) * 100) : null;
+      const vehicleShare = totalKm > 0 ? Math.round((vehicleKm / totalKm) * 100) : null;
+
+      const sortedLengths = Array.from(lengthByType.entries())
+        .sort((a, b) => b[1] - a[1])
+        .reduce<Record<string, number>>((acc, [type, km]) => {
+          acc[type] = Number(km.toFixed(3));
+          return acc;
+        }, {});
+
+      const roadDensity =
+        areaSummary?.approximateAreaSqKm && areaSummary.approximateAreaSqKm > 0
+          ? Number((totalKm / areaSummary.approximateAreaSqKm).toFixed(3))
+          : null;
+
+      return res.json({
+        area: areaSummary,
+        roads: {
+          radiusMeters,
+          totalKm: Number(totalKm.toFixed(3)),
+          walkableKm: Number(walkableKm.toFixed(3)),
+          cycleKm: Number(cycleKm.toFixed(3)),
+          vehicleKm: Number(vehicleKm.toFixed(3)),
+          lengthByType: sortedLengths,
+          densityPerSqKm: roadDensity,
+        },
+        scores: {
+          walkability: walkabilityScore,
+          cycleFriendliness: cycleScore,
+          vehicleDominance: vehicleShare,
+        },
+        transit: {
+          radiusMeters,
+          counts: {
+            station: transitCounts.station,
+            busStop: transitCounts.busStop,
+            railStation: transitCounts.railStation,
+            total: transitCounts.total,
+          },
+          nearest: {
+            station: nearestTransit.station
+              ? {
+                  name: nearestTransit.station.name,
+                  distanceMeters: nearestTransit.station.distanceMeters,
+                  latitude: nearestTransit.station.latitude,
+                  longitude: nearestTransit.station.longitude,
+                }
+              : null,
+            busStop: nearestTransit.busStop
+              ? {
+                  name: nearestTransit.busStop.name,
+                  distanceMeters: nearestTransit.busStop.distanceMeters,
+                  latitude: nearestTransit.busStop.latitude,
+                  longitude: nearestTransit.busStop.longitude,
+                }
+              : null,
+            railStation: nearestTransit.railStation
+              ? {
+                  name: nearestTransit.railStation.name,
+                  distanceMeters: nearestTransit.railStation.distanceMeters,
+                  latitude: nearestTransit.railStation.latitude,
+                  longitude: nearestTransit.railStation.longitude,
+                }
+              : null,
+          },
         },
       });
     } catch (error: any) {
