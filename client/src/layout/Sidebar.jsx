@@ -17,8 +17,12 @@ export default function Sidebar() {
   return (
     <div className="h-full flex flex-col bg-white border-r shadow-xl z-10 w-80">
       <div className="p-4 border-b">
-        <h1 className="font-bold text-xl tracking-tight text-primary flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+        <h1 className="font-bold text-xl tracking-tight text-primary flex items-center gap-3">
+          <img
+            src="/favicon.png"
+            alt="Greenfield Radar logo"
+            className="h-7 w-7 object-contain"
+          />
           Greenfield Radar
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Micro-market opportunity detection</p>
