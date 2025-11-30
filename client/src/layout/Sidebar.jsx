@@ -47,36 +47,6 @@ export default function Sidebar() {
                 })
               }
             />
-            
-            {/* <div className="space-y-2">
-               <label className="text-sm font-medium">Transport Mode</label>
-               <Tabs 
-                 value={filters.transport} 
-                 onValueChange={(v) => setFilters(prev => ({...prev, transport: v}))}
-                 className="w-full"
-               >
-                 <TabsList className="grid w-full grid-cols-2">
-                   <TabsTrigger value="walking"><Footprints className="w-4 h-4 mr-2"/> Walking</TabsTrigger>
-                   <TabsTrigger value="driving"><Car className="w-4 h-4 mr-2"/> Driving</TabsTrigger>
-                 </TabsList>
-               </Tabs>
-            </div> */}
-
-            {/* <div className="space-y-2">
-              <label className="text-sm font-medium flex justify-between">
-                Time Budget
-                <span className="text-muted-foreground font-normal">{filters.timeBudget} min</span>
-              </label>
-              <input 
-                type="range" 
-                min="5" 
-                max="30" 
-                step="5"
-                className="w-full accent-primary h-2 bg-secondary rounded-lg appearance-none cursor-pointer"
-                value={filters.timeBudget}
-                onChange={(e) => setFilters(prev => ({...prev, timeBudget: parseInt(e.target.value)}))}
-              />
-            </div> */}
           </section>
 
           <Separator />
@@ -85,7 +55,6 @@ export default function Sidebar() {
             <h2 className="text-sm font-semibold text-foreground">Market Analysis</h2>
             <CategoryDropDown />
             <CategorySelect />
-            {/* <PrioritySliders /> */}
           </section>
 
         </div>
