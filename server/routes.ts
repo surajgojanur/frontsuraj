@@ -1,4 +1,3 @@
-import { posts } from './../node_modules/@reduxjs/toolkit/src/query/tests/mocks/handlers';
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { type Request, type Response } from "express";
@@ -6,6 +5,23 @@ import { storage } from "./storage";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import {
+  bbox as turfBbox,
+  circle as turfCircle,
+  featureCollection,
+  hexGrid as turfHexGrid,
+  point as turfPoint,
+  pointsWithinPolygon,
+  centroid as turfCentroid,
+} from "@turf/turf";
+import type {
+  Feature,
+  FeatureCollection,
+  MultiPoint,
+  MultiPolygon,
+  Point,
+  Polygon,
+} from "geojson";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -240,6 +256,229 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error(error);
       res.status(500).json({
+        error: "Server error",
+        details: error.message,
+      });
+    }
+  });
+
+  app.post("/api/competitor-density", async (req: Request, res: Response) => {
+    const schema = z.object({
+      latitude: z.coerce
+        .number({ invalid_type_error: "latitude must be a number" })
+        .min(-90, "latitude must be >= -90")
+        .max(90, "latitude must be <= 90"),
+      longitude: z.coerce
+        .number({ invalid_type_error: "longitude must be a number" })
+        .min(-180, "longitude must be >= -180")
+        .max(180, "longitude must be <= 180"),
+      categories: z.array(z.string().min(3)).min(1, "categories required"),
+      radiusKm: z.coerce
+        .number({ invalid_type_error: "radiusKm must be a number" })
+        .min(0.2, "radiusKm must be >= 0.2")
+        .max(15, "radiusKm must be <= 15")
+        .default(2),
+      cellKm: z.coerce
+        .number({ invalid_type_error: "cellKm must be a number" })
+        .min(0.05, "cellKm must be >= 0.05")
+        .max(5, "cellKm must be <= 5")
+        .default(0.3),
+    });
+
+    const parseResult = schema.safeParse(req.body ?? {});
+
+    if (!parseResult.success) {
+      const [{ message }] = parseResult.error.errors;
+      return res.status(400).json({ error: message });
+    }
+
+    const { latitude, longitude, categories, radiusKm, cellKm } =
+      parseResult.data;
+
+    try {
+      const radiusMeters = Math.round(radiusKm * 1000);
+
+      const filterQuery = categories
+        .map((item) => {
+          if (!item.includes("=")) return "";
+          const [key, value] = item.split("=");
+          return `
+            node["${key}"="${value}"](around:${radiusMeters},${latitude},${longitude});
+            way["${key}"="${value}"](around:${radiusMeters},${latitude},${longitude});
+            relation["${key}"="${value}"](around:${radiusMeters},${latitude},${longitude});
+          `;
+        })
+        .join("\n");
+
+      if (!filterQuery.trim()) {
+        return res.status(400).json({ error: "Invalid categories provided" });
+      }
+
+      const query = `
+        [out:json][timeout:25];
+        (
+          ${filterQuery}
+        );
+        out center meta;
+      `;
+
+      const response = await axios.post(
+        "https://overpass-api.de/api/interpreter",
+        query,
+        { headers: { "Content-Type": "text/plain" } }
+      );
+
+      const elements = Array.isArray(response?.data?.elements)
+        ? (response.data.elements as Record<string, any>[])
+        : [];
+
+      const seen = new Set<string>();
+      const pointFeatures: Feature<Point>[] = [];
+      const sanitizedPoints: Array<{
+        id: number | string;
+        name: string;
+        category: string;
+        latitude: number;
+        longitude: number;
+        tags: Record<string, unknown>;
+      }> = [];
+
+      for (const el of elements) {
+        const lat = Number.parseFloat(el?.lat ?? el?.center?.lat);
+        const lon = Number.parseFloat(el?.lon ?? el?.center?.lon);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          continue;
+        }
+
+        const idKey = `${el?.type ?? "unknown"}-${el?.id ?? "unknown"}`;
+        if (seen.has(idKey)) {
+          continue;
+        }
+        seen.add(idKey);
+
+        const name = el?.tags?.name || "Unknown";
+        const category =
+          el?.tags?.amenity || el?.tags?.shop || el?.tags?.leisure || "unknown";
+
+        sanitizedPoints.push({
+          id: el.id,
+          name,
+          category,
+          latitude: lat,
+          longitude: lon,
+          tags: el?.tags ?? {},
+        });
+
+        pointFeatures.push(
+          turfPoint([lon, lat], {
+            id: el.id,
+            name,
+            category,
+          }) as Feature<Point>
+        );
+      }
+
+      const mask = turfCircle([longitude, latitude], radiusKm, {
+        steps: 64,
+        units: "kilometers",
+      });
+
+      const bbox = turfBbox(mask);
+      const grid = turfHexGrid(bbox, cellKm, {
+        units: "kilometers",
+        mask,
+      });
+      const pointCollection = featureCollection<Point>(
+        pointFeatures
+      ) as FeatureCollection<Point | MultiPoint>;
+
+      let maxCount = 0;
+
+      const countedTiles: Feature<Polygon | MultiPolygon>[] = [];
+      let tileIndex = 0;
+
+      for (const feature of grid.features as Feature<
+        Polygon | MultiPolygon
+      >[]) {
+        const pointsInCell = pointsWithinPolygon(pointCollection, feature);
+        const count = pointsInCell.features.length;
+
+        maxCount = Math.max(maxCount, count);
+
+  const tileId = `H${tileIndex + 1}`;
+  tileIndex += 1;
+
+        countedTiles.push({
+          ...feature,
+          properties: {
+            ...(feature.properties ?? {}),
+            count,
+            id: tileId,
+          },
+        });
+      }
+
+      const tiles = countedTiles.map((feature) => {
+        const originalProps = (feature.properties ?? {}) as Record<string, any>;
+        const count = originalProps?.count ?? 0;
+        const score = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
+
+        return {
+          ...feature,
+          properties: {
+            ...originalProps,
+            count,
+            score,
+          },
+        };
+      });
+
+      const heatmapPoints: Feature<Point>[] = tiles
+        .filter((feature) => (feature.properties?.count ?? 0) > 0)
+        .map((feature) => {
+          const center = turfCentroid(feature) as Feature<Point>;
+          const props = (feature.properties ?? {}) as Record<string, any>;
+
+          center.properties = {
+            weight: props?.count ?? 0,
+            score: props?.score ?? 0,
+            id: props?.id ?? null,
+          };
+
+          return center;
+        });
+
+      const topTiles = tiles
+        .filter((feature) => (feature.properties?.count ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            (b.properties?.count ?? 0) - (a.properties?.count ?? 0)
+        )
+        .slice(0, 5)
+        .map((feature, index) => ({
+          ...feature,
+          properties: {
+            ...(feature.properties ?? {}),
+            rank: index + 1,
+          },
+        }));
+
+      return res.json({
+        tiles: featureCollection(tiles),
+        points: sanitizedPoints,
+        topTiles,
+        heatmapPoints: featureCollection(heatmapPoints),
+        metadata: {
+          totalCount: sanitizedPoints.length,
+          maxCount,
+          radiusKm,
+          cellKm,
+        },
+      });
+    } catch (error: any) {
+      console.error(error);
+      return res.status(500).json({
         error: "Server error",
         details: error.message,
       });

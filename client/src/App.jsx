@@ -16,6 +16,7 @@ import SelectedPinMarker from '@/components/map/SelectedPinMarker';
 import CompareModeLayer from '@/components/map/CompareModeLayer';
 import TopTilesLayer from '@/components/map/TopTilesLayer';
 import RadiusCircleLayer from '@/components/map/RadiusCircleLayer';
+import HeatmapToggleControl from '@/components/map/HeatmapToggleControl';
 import LocationScoreCard from '@/components/ui/LocationScoreCard';
 import { useScoreLocation } from '@/hooks/useScoreLocation';
 import { useCompareLocations } from '@/hooks/useCompareLocations';
@@ -34,6 +35,7 @@ function AppContent() {
     priorities,
     plusCategories,
     competitorCategories,
+    heatmapEnabled,
   } = useAppContext();
   
   const { data: scoreData, isLoading: scoreLoading } = useScoreLocation(
@@ -63,7 +65,9 @@ function AppContent() {
             <>
               <RadiusCircleLayer radiusKm={2} />
               <IsochroneLayer data={scoreData?.isochrone} />
-              <TileHeatmapLayer data={scoreData?.tiles} />
+              {heatmapEnabled && (
+                <TileHeatmapLayer data={scoreData?.tiles} heatmap={scoreData?.heatmap} />
+              )}
               <TopTilesLayer data={scoreData?.topTiles} />
               <CoffeeShopsLayer />
               <CompetitorLayer />
@@ -75,8 +79,10 @@ function AppContent() {
               dataA={compareData.locationA}
               locationB={compareLocationB}
               dataB={compareData.locationB}
+              heatmapEnabled={heatmapEnabled}
             />
           )}
+          <HeatmapToggleControl className="absolute right-4 bottom-28 z-30" />
         </MapContainer>
 
         {/* <Toolbar /> */}

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchNearby } from '@/lib/nearby';
+import { fetchCompetitorDensity } from '@/lib/density';
 
 const SCORE_MAX = 100;
 const BASE_SCORE = 50;
@@ -58,18 +59,18 @@ const fetchScore = async (location, plusCategories, competitorCategories) => {
     return null;
   }
 
-  const [targetData, competitorData] = await Promise.all([
+  const [targetData, competitorDensity] = await Promise.all([
     Array.isArray(plusCategories) && plusCategories.length
       ? fetchNearby(latitude, longitude, plusCategories)
       : Promise.resolve({ results: [] }),
     Array.isArray(competitorCategories) && competitorCategories.length
-      ? fetchNearby(latitude, longitude, competitorCategories)
-      : Promise.resolve({ results: [] }),
+      ? fetchCompetitorDensity(latitude, longitude, competitorCategories)
+      : Promise.resolve({ tiles: null, points: [], topTiles: [], metadata: null, heatmap: null }),
   ]);
 
   const targetNearest = findNearest(targetData.results, latitude, longitude);
   const competitorNearest = findNearest(
-    competitorData.results,
+    competitorDensity.points,
     latitude,
     longitude
   );
@@ -121,12 +122,14 @@ const fetchScore = async (location, plusCategories, competitorCategories) => {
     targetNearest,
     competitorNearest,
     targetCount: targetData.results.length,
-    competitorCount: competitorData.results.length,
+    competitorCount: competitorDensity.points.length,
     adjustments,
     isochrone: null,
-    tiles: null,
+    tiles: competitorDensity.tiles,
+    heatmap: competitorDensity.heatmap,
     pois: null,
-    topTiles: [],
+    topTiles: competitorDensity.topTiles,
+    densityMetadata: competitorDensity.metadata,
   };
 };
 
