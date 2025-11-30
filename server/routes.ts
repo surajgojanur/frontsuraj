@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { type Request, type Response } from "express";
 import { storage } from "./storage";
 import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import {
   bbox as turfBbox,
@@ -1097,74 +1096,6 @@ export async function registerRoutes(
 
     const { text } = parseResult.data;
     res.json({ text });
-  });
-
-  app.post("/api/gemini", async (req: Request, res: Response) => {
-    const apiKey = process.env.Gemini_Key ?? process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("Gemini API key is not set");
-      return res.status(500).json({ error: "Server configuration error" });
-    }
-
-    const schema = z.object({
-      prompt: z.string().trim().min(1, "prompt is required").optional(),
-    });
-
-    const parseResult = schema.safeParse(req.body ?? {});
-    if (!parseResult.success) {
-      const [{ message }] = parseResult.error.errors;
-      return res.status(400).json({ error: message });
-    }
-
-    const prompt =
-      parseResult.data.prompt ?? "Explain how AI works in a few words";
-
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-
-      let output: unknown = (response as any)?.text;
-
-      if (typeof output === "function") {
-        output = await output.call(response);
-      }
-
-      if (typeof output !== "string" || output.trim().length === 0) {
-        const candidates = Array.isArray((response as any)?.candidates)
-          ? (response as any).candidates
-          : [];
-
-        output = candidates
-          .flatMap((candidate: any) => candidate?.content?.parts ?? [])
-          .map((part: any) => part?.text)
-          .filter((value: any): value is string => Boolean(value))
-          .join("\n");
-      }
-
-      if (typeof output !== "string" || output.trim().length === 0) {
-        return res
-          .status(502)
-          .json({ error: "Gemini API did not return any content" });
-      }
-
-      res.json({ text: output });
-    } catch (error: any) {
-      console.error(
-        "Gemini API Error:",
-        error?.response?.data || error?.message || error
-      );
-
-      const status = error?.response?.status || 500;
-      const message =
-        error?.response?.data?.error?.message ||
-        error?.response?.data?.message ||
-        "Failed to fetch response from Gemini";
-
-      res.status(status).json({ error: message });
-    }
   });
 
   // Geocode proxy endpoint
