@@ -82,7 +82,7 @@ function AppContent() {
               heatmapEnabled={heatmapEnabled}
             />
           )}
-          <HeatmapToggleControl className="absolute right-4 bottom-28 z-30" />
+          <HeatmapToggleControl className="absolute right-16 bottom-20 z-30" />
         </MapContainer>
 
         {/* <Toolbar /> */}

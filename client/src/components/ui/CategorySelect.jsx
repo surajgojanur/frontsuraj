@@ -12,6 +12,11 @@ import {
   Store,
   Laptop,
   ShoppingCart,
+  Dumbbell,
+  Fuel,
+  Shield,
+  BookOpen,
+  Clapperboard,
 } from "lucide-react";
 
 const CATEGORY_DEFINITIONS = [
@@ -27,6 +32,11 @@ const CATEGORY_DEFINITIONS = [
   { value: "shop=clothes", label: "Clothes", icon: Shirt },
   { value: "shop=electronics", label: "Electronics", icon: Laptop },
   { value: "shop=convenience", label: "Convenience", icon: Store },
+  { value: "leisure=fitness_centre", label: "Gym", icon: Dumbbell },
+  { value: "amenity=fuel", label: "Petrol Bunk", icon: Fuel },
+  { value: "amenity=police", label: "Police Station", icon: Shield },
+  { value: "amenity=college", label: "College", icon: BookOpen },
+  { value: "amenity=cinema", label: "Cinema Theater", icon: Clapperboard },
 ];
 
 export default function CategorySelect({ onChange } = {}) {

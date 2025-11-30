@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMapContext } from '@/context/MapContext';
 import { useAppContext } from '@/context/AppContext';
+import { buildAddress } from '@/lib/nearby';
 
 const SOURCE_ID = 'competitor-places-source';
 const LAYER_ID = 'competitor-places-layer';
@@ -62,6 +63,7 @@ export default function CompetitorLayer() {
           .map((item, index) => {
             const lat = Number.parseFloat(item?.latitude ?? item?.lat ?? item?.location?.lat);
             const lng = Number.parseFloat(item?.longitude ?? item?.lng ?? item?.lon ?? item?.location?.lng);
+            const address = item?.address ?? buildAddress(item);
 
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
               return null;
@@ -72,6 +74,7 @@ export default function CompetitorLayer() {
               latitude: lat,
               longitude: lng,
               name: item?.name ?? item?.tags?.name ?? 'Unknown',
+              address,
               category: item?.category ?? item?.tags?.shop ?? 'unknown',
             };
           })
@@ -111,6 +114,7 @@ export default function CompetitorLayer() {
         properties: {
           id: place.id,
           name: place.name,
+          address: place.address,
           category: place.category,
         },
       })),
@@ -138,9 +142,13 @@ export default function CompetitorLayer() {
       type: 'symbol',
       source: SOURCE_ID,
       layout: {
-        'text-field': ['get', 'name'],
-        'text-offset': [0, 1.2],
-        'text-anchor': 'top',
+        'text-field': [
+          'coalesce',
+          ['get', 'address'],
+          ['get', 'name']
+        ],
+        'text-offset': [1.1, 0],
+        'text-anchor': 'left',
         'text-size': 12,
         'text-allow-overlap': false,
       },
@@ -163,7 +171,7 @@ export default function CompetitorLayer() {
       new maplibregl.Popup()
         .setLngLat(geometry.coordinates)
         .setHTML(
-          `<div style="min-width:150px"><strong>${properties.name}</strong><div style="font-size:12px;color:#555">${properties.category}</div></div>`
+          `<div style="min-width:180px"><strong>${properties.name}</strong>${properties.address ? `<div style="font-size:12px;color:#555;margin-top:4px;">${properties.address}</div>` : ''}<div style="font-size:12px;color:#555;margin-top:4px;">${properties.category}</div></div>`
         )
         .addTo(map);
     };

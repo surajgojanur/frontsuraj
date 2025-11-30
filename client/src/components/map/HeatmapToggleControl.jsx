@@ -21,7 +21,7 @@ export default function HeatmapToggleControl({ className }) {
         aria-pressed={heatmapEnabled}
         onClick={handleToggle}
       >
-  {heatmapEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+        {heatmapEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         <span className="text-xs font-medium uppercase tracking-wide">
           {heatmapEnabled ? 'Heatmap On' : 'Heatmap Off'}
         </span>

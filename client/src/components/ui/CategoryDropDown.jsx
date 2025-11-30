@@ -15,7 +15,12 @@ const CATEGORY_OPTIONS = [
   { label: "Supermarket", value: "shop=supermarket" },
   { label: "Clothes", value: "shop=clothes" },
   { label: "Electronics", value: "shop=electronics" },
-  { label: "Convenience Store", value: "shop=convenience" }
+  { label: "Convenience Store", value: "shop=convenience" },
+  { label: "Gym", value: "leisure=fitness_centre" },
+  { label: "Petrol Bunk", value: "amenity=fuel" },
+  { label: "Police Station", value: "amenity=police" },
+  { label: "College", value: "amenity=college" },
+  { label: "Cinema Theater", value: "amenity=cinema" }
 ];
 
 export default function CategoryDropDown({ onChange } = {}) {

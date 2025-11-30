@@ -7,7 +7,6 @@ import CategorySelect from '@/components/ui/CategorySelect';
 import PrioritySliders from '@/components/ui/PrioritySliders';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Footprints, Car } from 'lucide-react';
-import LocationName from "@/components/map/LocationName";
 import CategoryDropDown from '../components/ui/CategoryDropDown';
 
 export default function Sidebar() {
@@ -26,10 +25,12 @@ export default function Sidebar() {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-8">
-           <LocationName />
+        <div className="p-4 space-y-6">
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-foreground">Target Location</h2>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Pick a spot by typing an address or clicking anywhere on the map.
+            </p>
             <AddressInput
               searchOrigin={selectedLocation}
               onSelect={(location) =>

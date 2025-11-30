@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useMapContext } from '@/context/MapContext';
 import { useAppContext } from '@/context/AppContext';
 import maplibregl from 'maplibre-gl';
+import { buildAddress } from '@/lib/nearby';
 
 const DEFAULT_PLUS_CATEGORIES = ['shop=bakery'];
 
@@ -75,6 +76,8 @@ export default function CoffeeShopsLayer() {
               item?.longitude ?? item?.lng ?? item?.lon ?? item?.location?.lng
             );
 
+            const address = item?.address ?? buildAddress(item);
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
               return null;
             }
@@ -84,6 +87,7 @@ export default function CoffeeShopsLayer() {
               latitude: lat,
               longitude: lng,
               name: item?.name ?? item?.tags?.name ?? 'Unknown',
+              address,
               category: item?.category ?? item?.tags?.shop ?? 'coffee',
             };
           })
@@ -127,6 +131,7 @@ export default function CoffeeShopsLayer() {
         properties: {
           id: shop.id,
           name: shop.name,
+          address: shop.address,
           category: shop.category,
         },
       })),
@@ -156,9 +161,13 @@ export default function CoffeeShopsLayer() {
       type: 'symbol',
       source: sourceId,
       layout: {
-        'text-field': ['get', 'name'],
-        'text-offset': [0, 1.2],
-        'text-anchor': 'top',
+        'text-field': [
+          'coalesce',
+          ['get', 'address'],
+          ['get', 'name']
+        ],
+        'text-offset': [1.1, 0],
+        'text-anchor': 'left',
         'text-size': 12,
         'text-allow-overlap': false,
       },
@@ -183,7 +192,7 @@ export default function CoffeeShopsLayer() {
       new maplibregl.Popup()
         .setLngLat(coords)
         .setHTML(
-          `<div style="min-width:150px"><strong>${props.name}</strong></div>`
+          `<div style="min-width:180px"><strong>${props.name}</strong>${props.address ? `<div style="font-size:12px;color:#555;margin-top:4px;">${props.address}</div>` : ''}</div>`
         )
         .addTo(map);
     };

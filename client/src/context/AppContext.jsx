@@ -26,7 +26,7 @@ export const AppProvider = ({ children }) => {
   const [competitorCategories, setCompetitorCategories] = useState([]);
   // simple tick to request nearby refetches when categories change
   const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
-  const [heatmapEnabled, setHeatmapEnabled] = useState(true);
+  const [heatmapEnabled, setHeatmapEnabled] = useState(false);
 
   return (
     <AppContext.Provider value={{

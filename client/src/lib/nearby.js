@@ -1,5 +1,45 @@
 import { useQuery } from '@tanstack/react-query';
 
+export const buildAddress = (item) => {
+  const tags = item?.tags ?? {};
+
+  const explicitAddress =
+    tags['addr:full'] ??
+    tags['addr:place'] ??
+    tags['addr:street_address'] ??
+    tags['contact:address'] ??
+    null;
+
+  if (typeof explicitAddress === 'string' && explicitAddress.trim().length) {
+    return explicitAddress.trim();
+  }
+
+  const houseNumber = tags['addr:housenumber'] ?? tags['addr:unit'];
+  const street = tags['addr:street'] ?? tags['addr:road'];
+  const suburb = tags['addr:suburb'] ?? tags['addr:neighbourhood'];
+  const city = tags['addr:city'] ?? tags['addr:town'] ?? tags['addr:village'];
+
+  const components = [];
+
+  if (houseNumber || street) {
+    components.push([houseNumber, street].filter(Boolean).join(' ').trim());
+  }
+
+  if (suburb) {
+    components.push(suburb);
+  }
+
+  if (city) {
+    components.push(city);
+  }
+
+  if (components.length) {
+    return components.join(', ');
+  }
+
+  return null;
+};
+
 // Strict fetch function as requested
 export async function fetchNearby(lat, lng, categories) {
   const res = await fetch("/api/places-nearby", {
@@ -33,10 +73,13 @@ export async function fetchNearby(lat, lng, categories) {
         return null;
       }
 
+      const address = buildAddress(item);
+
       return {
         id: item?.id ?? `${latitude}-${longitude}-${index}`,
-        name: item?.name ?? "Unknown",
-        category: item?.category ?? "unknown",
+        name: item?.name ?? item?.tags?.name ?? "Unknown",
+        address: address ?? null,
+        category: item?.category ?? item?.tags?.shop ?? "unknown",
         latitude,
         longitude,
       };
