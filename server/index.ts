@@ -12,17 +12,25 @@ const server = createServer(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Setup routes (API)
-await registerRoutes(server, app);
+// Wrap in async startup to avoid top-level await with CJS builds
+async function start() {
+  // Setup routes (API)
+  await registerRoutes(server, app);
 
-// Setup Vite or static files
-if (process.env.NODE_ENV === "development") {
-  await setupVite(server, app);
-} else {
-  serveStatic(app);
+  // Setup Vite or static files
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(server, app);
+  } else {
+    serveStatic(app);
+  }
+
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+start().catch((err) => {
+  console.error("Failed to start server", err);
+  process.exit(1);
 });
